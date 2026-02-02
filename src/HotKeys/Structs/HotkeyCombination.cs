@@ -33,6 +33,7 @@ namespace Poss.Win.Automation.HotKeys.Structs
         {
             if (_strokes == null || _strokes.Length == 0)
                 return new HashSet<VirtualKey>();
+
             return new HashSet<VirtualKey>(_strokes.Select(s => s.Key));
         }
 
@@ -113,11 +114,13 @@ namespace Poss.Win.Automation.HotKeys.Structs
         {
             if (!TryParse(keysString, out var result))
                 throw new ArgumentException($"Invalid key combination: {keysString}", nameof(keysString));
+
             return result;
         }
 
         /// <summary>
         /// Matches against current stroke (for Up triggers) and pressed keys (for Down/Press).
+        /// When registered as Ctrl/Alt/Shift/Win, matches when any of left or right variant is pressed.
         /// </summary>
         public bool Matches(KeyStroke currentStroke, HashSet<VirtualKey> pressedKeys)
         {
@@ -127,15 +130,61 @@ namespace Poss.Win.Automation.HotKeys.Structs
             {
                 if (stroke.Action == KeyAction.Up)
                 {
-                    if (currentStroke.Key != stroke.Key || currentStroke.Action != KeyAction.Up) return false;
+                    if (currentStroke.Action != KeyAction.Up) return false;
+                    if (!KeysMatch(stroke.Key, currentStroke.Key)) return false;
                 }
                 else
                 {
-                    if (!pressedKeys.Contains(stroke.Key)) return false;
+                    if (!IsModifierOrKeyPressed(stroke.Key, pressedKeys)) return false;
                 }
             }
 
             return true;
+        }
+
+        private static bool IsModifierOrKeyPressed(VirtualKey required, HashSet<VirtualKey> pressedKeys)
+        {
+            if (pressedKeys.Contains(required)) return true;
+            if (required == VirtualKey.Ctrl || required == VirtualKey.Control)
+                return pressedKeys.Contains(VirtualKey.LControl) || pressedKeys.Contains(VirtualKey.RControl);
+            if (required == VirtualKey.Shift)
+                return pressedKeys.Contains(VirtualKey.LShift) || pressedKeys.Contains(VirtualKey.RShift);
+            if (required == VirtualKey.Alt)
+                return pressedKeys.Contains(VirtualKey.LAlt) || pressedKeys.Contains(VirtualKey.RAlt);
+            if (required == VirtualKey.Win)
+                return pressedKeys.Contains(VirtualKey.LWin) || pressedKeys.Contains(VirtualKey.RWin);
+
+            return false;
+        }
+
+        internal static bool KeysMatch(VirtualKey a, VirtualKey b)
+        {
+            if (a == b) return true;
+
+            return IsModifierEquivalent(a, b);
+        }
+
+        private static bool IsModifierEquivalent(VirtualKey a, VirtualKey b)
+        {
+            var ctrl = new[] { VirtualKey.Ctrl, VirtualKey.Control, VirtualKey.LControl, VirtualKey.RControl };
+            var shift = new[] { VirtualKey.Shift, VirtualKey.LShift, VirtualKey.RShift };
+            var alt = new[] { VirtualKey.Alt, VirtualKey.LAlt, VirtualKey.RAlt };
+            var win = new[] { VirtualKey.Win, VirtualKey.LWin, VirtualKey.RWin };
+
+            return InGroup(a, b, ctrl) || InGroup(a, b, shift) || InGroup(a, b, alt) || InGroup(a, b, win);
+        }
+
+        private static bool InGroup(VirtualKey a, VirtualKey b, VirtualKey[] group)
+        {
+            bool hasA = false, hasB = false;
+
+            for (int i = 0; i < group.Length; i++)
+            {
+                if (group[i] == a) hasA = true;
+                if (group[i] == b) hasB = true;
+            }
+
+            return hasA && hasB;
         }
 
         public bool Equals(HotkeyCombination other) => SequenceEqual(_strokes, other._strokes);

@@ -40,7 +40,7 @@ namespace Poss.Win.Automation.HotKeys
                 {
                     foreach (var id in _active.Keys.ToList())
                     {
-                        if (_active[id].Contains(stroke.Key))
+                        if (_active[id].Any(k => HotkeyCombination.KeysMatch(k, stroke.Key)))
                             _active.Remove(id);
                     }
 

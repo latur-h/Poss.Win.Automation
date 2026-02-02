@@ -83,6 +83,8 @@ namespace Poss.Win.Automation.Common.Keys.Enums
         RShift = 0xA1,
         LControl = 0xA2,
         RControl = 0xA3,
+        LCtrl = 0xA2,
+        RCtrl = 0xA3,
         LAlt = 0xA4,
         RAlt = 0xA5,
         LWin = 0x5B,
