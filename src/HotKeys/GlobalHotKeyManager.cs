@@ -1,0 +1,254 @@
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
+using Poss.Win.Automation.Common.Keys.Enums;
+using Poss.Win.Automation.Common.Structs;
+using Poss.Win.Automation.HotKeys.Structs;
+using Poss.Win.Automation.Native;
+using Poss.Win.Automation.Native.Constants;
+using Poss.Win.Automation.Native.Structs;
+
+namespace Poss.Win.Automation.HotKeys
+{
+    /// <summary>
+    /// Facade for global hotkey handling. Coordinates hook lifecycle and the HotKeys worker.
+    /// </summary>
+    public sealed class GlobalHotKeyManager : IDisposable
+    {
+        private readonly object _lock = new object();
+        private readonly HookLifecycle _hookLifecycle;
+        private readonly HotKeys _hotKeys;
+        private readonly HashSet<VirtualKey> _pressedInputs = new HashSet<VirtualKey>();
+        private readonly bool _runMessageLoop;
+        private Thread _messageLoopThread;
+        private uint _messageLoopThreadId;
+        private bool _disposed;
+
+        /// <summary>
+        /// Creates a new <see cref="GlobalHotKeyManager"/> with default options.
+        /// </summary>
+        public GlobalHotKeyManager()
+        {
+            _runMessageLoop = false;
+            _hookLifecycle = new HookLifecycle(KeyboardProc, MouseProc);
+            _hotKeys = new HotKeys();
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="GlobalHotKeyManager"/> with the specified options.
+        /// </summary>
+        /// <param name="options">Optional configuration. If null, defaults are used.</param>
+        public GlobalHotKeyManager(HotKeyManagerOptions options)
+        {
+            _runMessageLoop = options?.RunMessageLoop ?? false;
+            _hookLifecycle = new HookLifecycle(KeyboardProc, MouseProc);
+            _hotKeys = new HotKeys();
+        }
+
+        public HotKeys HotKeys => _hotKeys;
+
+        /// <summary>
+        /// Starts the hotkey manager. Uses options passed to the constructor.
+        /// When RunMessageLoop is true, spawns a dedicated thread with a Windows message loop
+        /// so hooks work in console apps without WinForms/WPF.
+        /// </summary>
+        public void Start()
+        {
+            lock (_lock)
+            {
+                if (_disposed)
+                    throw new ObjectDisposedException(nameof(GlobalHotKeyManager));
+
+                if (_hookLifecycle.IsRunning)
+                    return;
+
+                if (_runMessageLoop)
+                {
+                    _messageLoopThread = new Thread(MessageLoopThread)
+                    {
+                        IsBackground = true,
+                        Name = "HotKeyMessageLoop"
+                    };
+                    _messageLoopThread.SetApartmentState(ApartmentState.STA);
+                    _messageLoopThread.Start();
+                    while (!_hookLifecycle.IsRunning && _messageLoopThread.IsAlive)
+                        Thread.Sleep(1);
+                }
+                else
+                {
+                    _hookLifecycle.Start();
+                }
+            }
+        }
+
+        public void Stop()
+        {
+            lock (_lock)
+            {
+                if (!_hookLifecycle.IsRunning)
+                    return;
+
+                _pressedInputs.Clear();
+
+                if (_messageLoopThread != null && _messageLoopThread.IsAlive)
+                {
+                    User32.PostThreadMessage(_messageLoopThreadId, HookConstants.WM_QUIT, IntPtr.Zero, IntPtr.Zero);
+                    _messageLoopThread.Join(5000);
+                    _messageLoopThread = null;
+                }
+                else
+                {
+                    _hookLifecycle.Stop();
+                }
+            }
+        }
+
+        private void MessageLoopThread()
+        {
+            _messageLoopThreadId = Kernel32.GetCurrentThreadId();
+            _hookLifecycle.Start();
+
+            var msg = new MSG();
+            while (User32.GetMessage(ref msg, IntPtr.Zero, 0, 0) > 0)
+            {
+                User32.TranslateMessage(ref msg);
+                User32.DispatchMessage(ref msg);
+            }
+
+            _hookLifecycle.Stop();
+        }
+
+        public bool IsRunning => _hookLifecycle.IsRunning;
+
+        public string Register(string id, Func<Task> action, params KeyStroke[] strokes) =>
+            _hotKeys.Register(id, action, strokes);
+
+        public string Register(string id, Func<Task> action, string keysString) =>
+            _hotKeys.Register(id, action, keysString);
+
+        public string Register(Func<Task> action, params KeyStroke[] strokes) =>
+            _hotKeys.Register(action, strokes);
+
+        public string Register(Func<Task> action, string keysString) =>
+            _hotKeys.Register(action, keysString);
+
+        public Task<string> RegisterAsync(string id, Func<Task> action, params KeyStroke[] strokes) =>
+            _hotKeys.RegisterAsync(id, action, strokes);
+
+        public Task<string> RegisterAsync(string id, Func<Task> action, string keysString) =>
+            _hotKeys.RegisterAsync(id, action, keysString);
+
+        public Task<string> RegisterAsync(Func<Task> action, params KeyStroke[] strokes) =>
+            _hotKeys.RegisterAsync(action, strokes);
+
+        public Task<string> RegisterAsync(Func<Task> action, string keysString) =>
+            _hotKeys.RegisterAsync(action, keysString);
+
+        public void Unregister(string id) =>
+            _hotKeys.Unregister(id);
+
+        public Task UnregisterAsync(string id) =>
+            _hotKeys.UnregisterAsync(id);
+
+        public void Change(string id, params KeyStroke[] newStrokes) =>
+            _hotKeys.Change(id, newStrokes);
+
+        public void Change(string id, string newKeysString) =>
+            _hotKeys.Change(id, newKeysString);
+
+        public void Change(string id, Func<Task> newAction) =>
+            _hotKeys.Change(id, newAction);
+
+        public IReadOnlyList<HotkeyBinding> GetRegisteredHotkeys() =>
+            _hotKeys.GetRegisteredHotkeys();
+
+        public Task<IReadOnlyList<HotkeyBinding>> GetRegisteredHotkeysAsync() =>
+            _hotKeys.GetRegisteredHotkeysAsync();
+
+        private IntPtr KeyboardProc(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            if (nCode >= 0)
+            {
+                int vkCode = Marshal.ReadInt32(lParam);
+                var key = (VirtualKey)(ushort)(vkCode & 0xFFFF);
+
+                var action = wParam == (IntPtr)HookConstants.WM_KEYDOWN || wParam == (IntPtr)HookConstants.WM_SYSKEYDOWN
+                    ? KeyAction.Down
+                    : KeyAction.Up;
+
+                if (action == KeyAction.Down)
+                    _pressedInputs.Add(key);
+                else
+                    _pressedInputs.Remove(key);
+
+                FireToWorker(new KeyStroke(key, action));
+            }
+
+            return User32.CallNextHookEx(_hookLifecycle.KeyboardHookId, nCode, wParam, lParam);
+        }
+
+        private IntPtr MouseProc(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            if (nCode >= 0)
+            {
+                var msg = (int)wParam;
+                VirtualKey? button = null;
+                bool isDown = false;
+                bool isUp = false;
+
+                switch (msg)
+                {
+                    case HookConstants.WM_LBUTTONDOWN: isDown = true; button = VirtualKey.LButton; break;
+                    case HookConstants.WM_RBUTTONDOWN: isDown = true; button = VirtualKey.RButton; break;
+                    case HookConstants.WM_MBUTTONDOWN: isDown = true; button = VirtualKey.MButton; break;
+                    case HookConstants.WM_XBUTTONDOWN:
+                        isDown = true;
+                        var hsDown = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
+                        button = ((hsDown.mouseData >> 16) & 0xFFFF) == 1 ? VirtualKey.XButton1 : VirtualKey.XButton2;
+                        break;
+                    case HookConstants.WM_LBUTTONUP: isUp = true; button = VirtualKey.LButton; break;
+                    case HookConstants.WM_RBUTTONUP: isUp = true; button = VirtualKey.RButton; break;
+                    case HookConstants.WM_MBUTTONUP: isUp = true; button = VirtualKey.MButton; break;
+                    case HookConstants.WM_XBUTTONUP:
+                        isUp = true;
+                        var hsUp = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
+                        button = ((hsUp.mouseData >> 16) & 0xFFFF) == 1 ? VirtualKey.XButton1 : VirtualKey.XButton2;
+                        break;
+                }
+
+                if (button.HasValue)
+                {
+                    if (isDown)
+                        _pressedInputs.Add(button.Value);
+                    else if (isUp)
+                        _pressedInputs.Remove(button.Value);
+
+                    FireToWorker(new KeyStroke(button.Value, isDown ? KeyAction.Down : KeyAction.Up));
+                }
+            }
+
+            return User32.CallNextHookEx(_hookLifecycle.MouseHookId, nCode, wParam, lParam);
+        }
+
+        private void FireToWorker(KeyStroke stroke)
+        {
+            var snapshot = new HashSet<VirtualKey>(_pressedInputs);
+            _ = _hotKeys.ProcessInputAsync(stroke, snapshot);
+        }
+
+        public void Dispose()
+        {
+            lock (_lock)
+            {
+                if (_disposed)
+                    return;
+
+                _pressedInputs.Clear();
+                _hookLifecycle.Dispose();
+                _disposed = true;
+            }
+        }
+    }
+}
