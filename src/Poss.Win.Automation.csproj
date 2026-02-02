@@ -3,6 +3,25 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <LangVersion>8.0</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <!-- NuGet package metadata -->
+    <PackageId>Poss.Win.Automation</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Latur</Authors>
+    <Description>Windows automation library for keyboard and mouse input simulation, global hotkey registration, and window management. Targets .NET Standard 2.0.</Description>
+    <PackageTags>windows;automation;input;keyboard;mouse;hotkey;global hotkey;keyboard hook;mouse hook;input simulation;SendInput;Win32;netstandard</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/latur-h/Poss.Win.Automation</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/latur-h/Poss.Win.Automation</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Copyright>Copyright (c) Latur 2026</Copyright>
+    <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="README.md" Visible="false" />
+  </ItemGroup>
 
 </Project>
