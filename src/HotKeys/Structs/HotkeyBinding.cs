@@ -5,25 +5,41 @@ using Poss.Win.Automation.Common.Structs;
 namespace Poss.Win.Automation.HotKeys.Structs
 {
     /// <summary>
-    /// Represents a registered hotkey binding (id and combination). Action is stored internally.
+    /// Represents a registered hotkey binding (id and combination).
     /// </summary>
     public readonly struct HotkeyBinding : IEquatable<HotkeyBinding>
     {
+        /// <summary>
+        /// Unique identifier for the binding.
+        /// </summary>
         public string Id { get; }
+
+        /// <summary>
+        /// The key combination that triggers the binding.
+        /// </summary>
         public HotkeyCombination Combination { get; }
 
+        /// <summary>
+        /// Creates a binding with the specified id and combination.
+        /// </summary>
         public HotkeyBinding(string id, HotkeyCombination combination)
         {
             Id = id ?? throw new ArgumentNullException(nameof(id));
             Combination = combination;
         }
 
+        /// <summary>
+        /// Creates a binding with the specified id and key strokes.
+        /// </summary>
         public HotkeyBinding(string id, params KeyStroke[] strokes)
         {
             Id = id ?? throw new ArgumentNullException(nameof(id));
             Combination = new HotkeyCombination(strokes);
         }
 
+        /// <summary>
+        /// Creates a binding with the specified id and key combination string.
+        /// </summary>
         public HotkeyBinding(string id, string keysString)
         {
             Id = id ?? throw new ArgumentNullException(nameof(id));

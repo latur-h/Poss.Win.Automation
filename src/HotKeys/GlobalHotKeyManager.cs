@@ -13,7 +13,7 @@ using Poss.Win.Automation.Native.Structs;
 namespace Poss.Win.Automation.HotKeys
 {
     /// <summary>
-    /// Facade for global hotkey handling. Coordinates hook lifecycle and the HotKeys worker.
+    /// Facade for global hotkey handling. Coordinates hook lifecycle and hotkey registration.
     /// </summary>
     public sealed class GlobalHotKeyManager : IDisposable
     {
@@ -47,13 +47,12 @@ namespace Poss.Win.Automation.HotKeys
             _hotKeys = new HotKeys();
         }
 
-        public HotKeys HotKeys => _hotKeys;
-
         /// <summary>
         /// Starts the hotkey manager. Uses options passed to the constructor.
-        /// When RunMessageLoop is true, spawns a dedicated thread with a Windows message loop
+        /// When <see cref="HotKeyManagerOptions.RunMessageLoop"/> is true, spawns a dedicated thread with a Windows message loop
         /// so hooks work in console apps without WinForms/WPF.
         /// </summary>
+        /// <exception cref="ObjectDisposedException">Thrown when the manager has been disposed.</exception>
         public void Start()
         {
             lock (_lock)
@@ -83,6 +82,9 @@ namespace Poss.Win.Automation.HotKeys
             }
         }
 
+        /// <summary>
+        /// Stops the hotkey manager and releases hooks. Idempotent.
+        /// </summary>
         public void Stop()
         {
             lock (_lock)
@@ -120,50 +122,113 @@ namespace Poss.Win.Automation.HotKeys
             _hookLifecycle.Stop();
         }
 
+        /// <summary>
+        /// Gets whether the hotkey manager is currently running and capturing input.
+        /// </summary>
         public bool IsRunning => _hookLifecycle.IsRunning;
 
+        /// <summary>
+        /// Registers a hotkey binding with the specified id.
+        /// </summary>
+        /// <param name="id">Unique identifier for the binding.</param>
+        /// <param name="action">Async callback invoked when the hotkey is triggered.</param>
+        /// <param name="strokes">Key strokes that define the combination (e.g. Ctrl + A).</param>
+        /// <returns>The binding id.</returns>
         public string Register(string id, Func<Task> action, params KeyStroke[] strokes) =>
             _hotKeys.Register(id, action, strokes);
 
+        /// <summary>
+        /// Registers a hotkey binding with the specified id. Keys format: "Ctrl + A Up", "Shift + LButton".
+        /// </summary>
+        /// <param name="id">Unique identifier for the binding.</param>
+        /// <param name="action">Async callback invoked when the hotkey is triggered.</param>
+        /// <param name="keysString">Key combination string. Parts separated by '+', optional action per key: Up, Down, Press.</param>
+        /// <returns>The binding id.</returns>
         public string Register(string id, Func<Task> action, string keysString) =>
             _hotKeys.Register(id, action, keysString);
 
+        /// <summary>
+        /// Registers a hotkey binding with an auto-generated id.
+        /// </summary>
+        /// <param name="action">Async callback invoked when the hotkey is triggered.</param>
+        /// <param name="strokes">Key strokes that define the combination.</param>
+        /// <returns>The auto-generated binding id.</returns>
         public string Register(Func<Task> action, params KeyStroke[] strokes) =>
             _hotKeys.Register(action, strokes);
 
+        /// <summary>
+        /// Registers a hotkey binding with an auto-generated id. Keys format: "Ctrl + A Up".
+        /// </summary>
+        /// <param name="action">Async callback invoked when the hotkey is triggered.</param>
+        /// <param name="keysString">Key combination string.</param>
+        /// <returns>The auto-generated binding id.</returns>
         public string Register(Func<Task> action, string keysString) =>
             _hotKeys.Register(action, keysString);
 
+        /// <summary>
+        /// Registers a hotkey binding asynchronously. Returns immediately with the id.
+        /// </summary>
         public Task<string> RegisterAsync(string id, Func<Task> action, params KeyStroke[] strokes) =>
             _hotKeys.RegisterAsync(id, action, strokes);
 
+        /// <summary>
+        /// Registers a hotkey binding asynchronously with a key string. Returns immediately with the id.
+        /// </summary>
         public Task<string> RegisterAsync(string id, Func<Task> action, string keysString) =>
             _hotKeys.RegisterAsync(id, action, keysString);
 
+        /// <summary>
+        /// Registers a hotkey binding asynchronously with auto-generated id. Returns immediately with the id.
+        /// </summary>
         public Task<string> RegisterAsync(Func<Task> action, params KeyStroke[] strokes) =>
             _hotKeys.RegisterAsync(action, strokes);
 
+        /// <summary>
+        /// Registers a hotkey binding asynchronously with auto-generated id and key string. Returns immediately with the id.
+        /// </summary>
         public Task<string> RegisterAsync(Func<Task> action, string keysString) =>
             _hotKeys.RegisterAsync(action, keysString);
 
+        /// <summary>
+        /// Unregisters a hotkey binding by id.
+        /// </summary>
+        /// <param name="id">The binding id to remove.</param>
         public void Unregister(string id) =>
             _hotKeys.Unregister(id);
 
+        /// <summary>
+        /// Unregisters a hotkey binding by id asynchronously.
+        /// </summary>
         public Task UnregisterAsync(string id) =>
             _hotKeys.UnregisterAsync(id);
 
+        /// <summary>
+        /// Changes the key combination for an existing binding.
+        /// </summary>
         public void Change(string id, params KeyStroke[] newStrokes) =>
             _hotKeys.Change(id, newStrokes);
 
+        /// <summary>
+        /// Changes the key combination for an existing binding using a key string.
+        /// </summary>
         public void Change(string id, string newKeysString) =>
             _hotKeys.Change(id, newKeysString);
 
+        /// <summary>
+        /// Changes the action callback for an existing binding.
+        /// </summary>
         public void Change(string id, Func<Task> newAction) =>
             _hotKeys.Change(id, newAction);
 
+        /// <summary>
+        /// Returns a copy of all registered hotkey bindings (id and combination only).
+        /// </summary>
         public IReadOnlyList<HotkeyBinding> GetRegisteredHotkeys() =>
             _hotKeys.GetRegisteredHotkeys();
 
+        /// <summary>
+        /// Returns a copy of all registered hotkey bindings asynchronously.
+        /// </summary>
         public Task<IReadOnlyList<HotkeyBinding>> GetRegisteredHotkeysAsync() =>
             _hotKeys.GetRegisteredHotkeysAsync();
 
@@ -238,6 +303,9 @@ namespace Poss.Win.Automation.HotKeys
             _ = _hotKeys.ProcessInputAsync(stroke, snapshot);
         }
 
+        /// <summary>
+        /// Releases resources and stops the hotkey manager. Idempotent.
+        /// </summary>
         public void Dispose()
         {
             lock (_lock)

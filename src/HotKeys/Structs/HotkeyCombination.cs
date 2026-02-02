@@ -15,21 +15,27 @@ namespace Poss.Win.Automation.HotKeys.Structs
         private readonly KeyStroke[] _strokes;
         private readonly bool _hasUpTrigger;
 
+        /// <summary>
+        /// The key strokes that define this combination.
+        /// </summary>
         public IReadOnlyList<KeyStroke> Strokes => _strokes ?? Array.Empty<KeyStroke>();
 
+        /// <summary>
+        /// Number of key strokes in the combination.
+        /// </summary>
         public int Count => _strokes?.Length ?? 0;
 
+        /// <summary>
+        /// True if the combination has no strokes.
+        /// </summary>
         public bool IsEmpty => Count == 0;
 
         /// <summary>
-        /// True if the combination has an Up stroke (trigger-on-release). Precomputed at init.
+        /// True if the combination has an Up stroke (trigger-on-release).
         /// </summary>
         public bool HasUpTrigger => _hasUpTrigger;
 
-        /// <summary>
-        /// Returns the set of all keys in the combination (for active tracking).
-        /// </summary>
-        public HashSet<VirtualKey> GetKeys()
+        internal HashSet<VirtualKey> GetKeys()
         {
             if (_strokes == null || _strokes.Length == 0)
                 return new HashSet<VirtualKey>();
@@ -37,6 +43,9 @@ namespace Poss.Win.Automation.HotKeys.Structs
             return new HashSet<VirtualKey>(_strokes.Select(s => s.Key));
         }
 
+        /// <summary>
+        /// Creates a combination from the specified key strokes.
+        /// </summary>
         public HotkeyCombination(params KeyStroke[] strokes)
         {
             if (strokes == null || strokes.Length == 0)
@@ -57,6 +66,9 @@ namespace Poss.Win.Automation.HotKeys.Structs
             _hasUpTrigger = Array.Exists(_strokes, s => s.Action == KeyAction.Up);
         }
 
+        /// <summary>
+        /// Creates a combination from the specified key strokes.
+        /// </summary>
         public HotkeyCombination(IEnumerable<KeyStroke> strokes)
         {
             if (strokes == null)
@@ -78,9 +90,11 @@ namespace Poss.Win.Automation.HotKeys.Structs
         }
 
         /// <summary>
-        /// Parses a key combination string. Format: "A + H Up + d down + LButton"
-        /// Parts are split by '+' and each part is parsed by KeyStroke.TryParse.
+        /// Parses a key combination string. Format: "Ctrl + A Up", "Shift + LButton".
         /// </summary>
+        /// <param name="keysString">Key combination string. Parts separated by '+', optional action per key: Up, Down, Press.</param>
+        /// <param name="result">The parsed combination when successful.</param>
+        /// <returns>True if parsing succeeded; otherwise, false.</returns>
         public static bool TryParse(string keysString, out HotkeyCombination result)
         {
             result = default;
@@ -108,8 +122,11 @@ namespace Poss.Win.Automation.HotKeys.Structs
         }
 
         /// <summary>
-        /// Parses a key combination string. Throws on invalid input.
+        /// Parses a key combination string.
         /// </summary>
+        /// <param name="keysString">Key combination string.</param>
+        /// <returns>The parsed combination.</returns>
+        /// <exception cref="ArgumentException">Thrown when the string is invalid.</exception>
         public static HotkeyCombination Parse(string keysString)
         {
             if (!TryParse(keysString, out var result))
@@ -118,11 +135,7 @@ namespace Poss.Win.Automation.HotKeys.Structs
             return result;
         }
 
-        /// <summary>
-        /// Matches against current stroke (for Up triggers) and pressed keys (for Down/Press).
-        /// When registered as Ctrl/Alt/Shift/Win, matches when any of left or right variant is pressed.
-        /// </summary>
-        public bool Matches(KeyStroke currentStroke, HashSet<VirtualKey> pressedKeys)
+        internal bool Matches(KeyStroke currentStroke, HashSet<VirtualKey> pressedKeys)
         {
             if (pressedKeys == null || _strokes == null || _strokes.Length == 0) return false;
 

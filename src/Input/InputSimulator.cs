@@ -17,7 +17,7 @@ namespace Poss.Win.Automation.Input
     /// Simulates keyboard and mouse input, including key presses, mouse clicks,
     /// cursor movement, and window queries. Supports optional filtering by process or window title.
     /// </summary>
-    public class InputSimulator
+    public sealed class InputSimulator
     {
         private static readonly ConcurrentDictionary<string, KeyStroke> _cache = new ConcurrentDictionary<string, KeyStroke>(StringComparer.OrdinalIgnoreCase);
 

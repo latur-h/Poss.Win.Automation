@@ -1,12 +1,11 @@
 namespace Poss.Win.Automation.Common.Keys.Enums
 {
+    /// <summary>
+    /// Windows virtual key codes. Maps to VK_* constants.
+    /// </summary>
     public enum VirtualKey : ushort
     {
-        // --------------------
         None = 0x00,
-        // --------------------
-        // Letters
-        // --------------------
         A = 0x41,
         B = 0x42,
         C = 0x43,
@@ -33,9 +32,6 @@ namespace Poss.Win.Automation.Common.Keys.Enums
         X = 0x58,
         Y = 0x59,
         Z = 0x5A,
-        // --------------------
-        // Numbers (Top Row)
-        // --------------------
         D0 = 0x30,
         D1 = 0x31,
         D2 = 0x32,
@@ -46,9 +42,6 @@ namespace Poss.Win.Automation.Common.Keys.Enums
         D7 = 0x37,
         D8 = 0x38,
         D9 = 0x39,
-        // --------------------
-        // Function Keys
-        // --------------------
         F1 = 0x70,
         F2 = 0x71,
         F3 = 0x72,
@@ -73,9 +66,6 @@ namespace Poss.Win.Automation.Common.Keys.Enums
         F22 = 0x85,
         F23 = 0x86,
         F24 = 0x87,
-        // --------------------
-        // Modifier Keys
-        // --------------------
         Shift = 0x10,
         Control = 0x11,
         Alt = 0x12,
@@ -90,15 +80,9 @@ namespace Poss.Win.Automation.Common.Keys.Enums
         LWin = 0x5B,
         RWin = 0x5C,
         Apps = 0x5D,
-        // --------------------
-        // Lock Keys
-        // --------------------
         CapsLock = 0x14,
         NumLock = 0x90,
         ScrollLock = 0x91,
-        // --------------------
-        // Navigation Keys
-        // --------------------
         Enter = 0x0D,
         Escape = 0x1B,
         Tab = 0x09,
@@ -116,9 +100,6 @@ namespace Poss.Win.Automation.Common.Keys.Enums
         ArrowUp = 0x26,
         ArrowRight = 0x27,
         ArrowDown = 0x28,
-        // --------------------
-        // Numpad
-        // --------------------
         NumPad0 = 0x60,
         NumPad1 = 0x61,
         NumPad2 = 0x62,
@@ -135,9 +116,6 @@ namespace Poss.Win.Automation.Common.Keys.Enums
         NumPadSubtract = 0x6D,
         NumPadDecimal = 0x6E,
         NumPadDivide = 0x6F,
-        // --------------------
-        // Symbols
-        // --------------------
         Semicolon = 0xBA,
         Equal = 0xBB,
         Comma = 0xBC,
@@ -149,39 +127,24 @@ namespace Poss.Win.Automation.Common.Keys.Enums
         Backslash = 0xDC,
         CloseBracket = 0xDD,
         Quote = 0xDE,
-        // --------------------
-        // Mouse buttons
-        // --------------------
         LButton = 0x01,
         RButton = 0x02,
         Cancel = 0x03,
         MButton = 0x04,
         XButton1 = 0x05,
         XButton2 = 0x06,
-        // --------------------
-        // Control keys (misc)
-        // --------------------
         Clear = 0x0C,
         Select = 0x29,
         Print = 0x2A,
         Execute = 0x2B,
         Help = 0x2F,
-        // --------------------
-        // Modifier aliases
-        // --------------------
         Ctrl = 0x11,
         Esc = 0x1B,
         Win = 0x5B,
-        // --------------------
-        // Arrow aliases
-        // --------------------
         Left = 0x25,
         Up = 0x26,
         Right = 0x27,
         Down = 0x28,
-        // --------------------
-        // Numpad aliases
-        // --------------------
         Num0 = 0x60,
         Num1 = 0x61,
         Num2 = 0x62,
@@ -198,9 +161,6 @@ namespace Poss.Win.Automation.Common.Keys.Enums
         Subtract = 0x6D,
         Decimal = 0x6E,
         Divide = 0x6F,
-        // --------------------
-        // Browser & Media keys
-        // --------------------
         BrowserBack = 0xA6,
         BrowserForward = 0xA7,
         BrowserRefresh = 0xA8,

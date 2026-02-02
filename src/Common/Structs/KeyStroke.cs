@@ -5,9 +5,15 @@ using Poss.Win.Automation.Common.Keys.Enums;
 
 namespace Poss.Win.Automation.Common.Structs
 {
+    /// <summary>
+    /// A key or mouse button with an optional action (Press, Down, Up).
+    /// </summary>
     public readonly struct KeyStroke
     {
+        /// <summary>The virtual key or mouse button.</summary>
         public readonly VirtualKey Key;
+
+        /// <summary>The key action (Press, Down, Up).</summary>
         public readonly KeyAction Action;
 
         private static readonly Dictionary<string, VirtualKey> StringToKey = new Dictionary<string, VirtualKey>(StringComparer.OrdinalIgnoreCase)
@@ -41,12 +47,19 @@ namespace Poss.Win.Automation.Common.Structs
             ["press"] = KeyAction.Press,
         };
 
+        /// <summary>
+        /// Creates a key stroke with the specified key and action.
+        /// </summary>
         public KeyStroke(VirtualKey key, KeyAction action = KeyAction.Press)
         {
             Key = key;
             Action = action;
         }
 
+        /// <summary>
+        /// Creates a key stroke by parsing the input string. Format: "A", "Ctrl Down", "LButton Up".
+        /// </summary>
+        /// <exception cref="ArgumentException">Thrown when the input is invalid.</exception>
         public KeyStroke(string input)
         {
             if (!TryParse(input, out KeyStroke result)) throw new ArgumentException($"Invalid key stroke: {input}");
@@ -55,6 +68,12 @@ namespace Poss.Win.Automation.Common.Structs
             Action = result.Action;
         }
 
+        /// <summary>
+        /// Parses a key stroke string. Format: "A", "Ctrl Down", "LButton Up".
+        /// </summary>
+        /// <param name="input">Key name plus optional action: Up, Down, Press, Click.</param>
+        /// <param name="result">The parsed stroke when successful.</param>
+        /// <returns>True if parsing succeeded; otherwise, false.</returns>
         public static bool TryParse(string input, out KeyStroke result)
         {
             result = default;
@@ -73,7 +92,7 @@ namespace Poss.Win.Automation.Common.Structs
             {
                 if (key == VirtualKey.None) return false;
             }
-            else if (StringToKey.TryGetValue(parts[0], out key)) { } // mapped
+            else if (StringToKey.TryGetValue(parts[0], out key)) { }
             else if (parts[0].Length == 1)
             {
                 char c = parts[0][0];
@@ -101,6 +120,12 @@ namespace Poss.Win.Automation.Common.Structs
             return true;
         }
 
+        /// <summary>
+        /// Gets the virtual key code for a key name.
+        /// </summary>
+        /// <param name="key">Key name (e.g. "A", "Ctrl", "LButton").</param>
+        /// <param name="vkCode">The virtual key code when successful.</param>
+        /// <returns>True if the key was recognized; otherwise, false.</returns>
         public static bool TryGetVirtualKeyCode(string key, out ushort vkCode)
         {
             vkCode = 0;

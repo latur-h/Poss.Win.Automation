@@ -11,7 +11,7 @@ namespace Poss.Win.Automation.Native
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     internal delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
-    public static class User32
+    internal static class User32
     {
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         internal static extern IntPtr SetWindowsHookEx(int idHook, LowLevelProc lpfn, IntPtr hMod, uint dwThreadId);
