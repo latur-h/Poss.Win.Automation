@@ -484,3 +484,6 @@ $RECYCLE.BIN/
 *.swp
 
 Projects/
+
+nuget.sh
+.cursorignore

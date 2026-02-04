@@ -24,7 +24,7 @@ using Poss.Win.Automation.Input;
 var sim = new InputSimulator();
 sim.SendText("Hello, World!");
 sim.Click(100, 200, "LButton");
-sim.Send("Ctrl+A");
+sim.Send("Ctrl");
 ```
 
 ### Global hotkeys

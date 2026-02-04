@@ -162,6 +162,7 @@ namespace Poss.Win.Automation.Input
         public void Send(KeyStroke stroke)
         {
             if (ShouldSkipInput()) return;
+
             Execute(stroke);
         }
 
@@ -169,6 +170,7 @@ namespace Poss.Win.Automation.Input
         {
             if (TryGetOrParse(input, out KeyStroke stroke))
                 return stroke;
+
             throw new ArgumentException($"Unknown key: {input}");
         }
 
