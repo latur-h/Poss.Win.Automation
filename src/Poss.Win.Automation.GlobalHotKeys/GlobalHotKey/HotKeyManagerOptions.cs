@@ -1,9 +1,9 @@
-namespace Poss.Win.Automation.HotKeys
+namespace Poss.Win.Automation.GlobalHotKeys
 {
     /// <summary>
-    /// Configuration options for <see cref="GlobalHotKeyManager"/>.
+    /// Configuration options for <see cref="GlobalGlobalHotKeyManager"/>.
     /// </summary>
-    public sealed class HotKeyManagerOptions
+    public sealed class GlobalHotKeyManagerOptions
     {
         /// <summary>
         /// If true, spawns a dedicated thread with a Windows message loop so hooks work

@@ -5,7 +5,7 @@
 ## Features
 
 - **InputSimulator** — simulate keyboard and mouse input (key presses, clicks, cursor movement, Unicode text)
-- **GlobalHotKeyManager** — register system-wide hotkeys with keyboard and mouse support
+- **GlobalGlobalHotKeyManager** — register system-wide hotkeys with keyboard and mouse support
 - **Window utilities** — activate windows, query titles, positions, process names
 
 ## Installation
@@ -30,9 +30,9 @@ sim.Send("Ctrl");
 ### Global hotkeys
 
 ```csharp
-using Poss.Win.Automation.HotKeys;
+using Poss.Win.Automation.GlobalHotKeys;
 
-var manager = new GlobalHotKeyManager(new HotKeyManagerOptions { RunMessageLoop = true });
+var manager = new GlobalGlobalHotKeyManager(new GlobalHotKeyManagerOptions { RunMessageLoop = true });
 manager.Start();
 
 manager.Register("save", async () => { /* save action */ }, "Ctrl+S");
@@ -55,10 +55,10 @@ sim.Click(100, 100);
 ### Console apps: use RunMessageLoop
 
 ```csharp
-using Poss.Win.Automation.HotKeys;
+using Poss.Win.Automation.GlobalHotKeys;
 
 // Hooks require a Windows message loop. In WinForms/WPF it exists; in console apps you must enable it:
-var manager = new GlobalHotKeyManager(new HotKeyManagerOptions { RunMessageLoop = true });
+var manager = new GlobalGlobalHotKeyManager(new GlobalHotKeyManagerOptions { RunMessageLoop = true });
 manager.Start();
 manager.Register("quit", async () => { Environment.Exit(0); }, "Ctrl+Q");
 // Keep running

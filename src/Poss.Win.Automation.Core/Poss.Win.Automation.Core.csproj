@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>8.0</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <Version>$(PackageVersion)</Version>
+    <PackageId>Poss.Win.Automation.Core</PackageId>
+    <Authors>Latur</Authors>
+    <Description>Shared types and native bindings for Poss.Win.Automation (Common + Native). Used by Input and GlobalHotKeys packages.</Description>
+    <PackageTags>windows;automation;netstandard;win32</PackageTags>
+    <PackageProjectUrl>https://github.com/latur-h/Poss.Win.Automation</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/latur-h/Poss.Win.Automation</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Copyright>Copyright (c) Latur 2026</Copyright>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="LICENSE" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Poss.Win.Automation.Input" />
+    <InternalsVisibleTo Include="Poss.Win.Automation.GlobalHotKeys" />
+  </ItemGroup>
+
+</Project>

@@ -4,23 +4,23 @@
 
 | Namespace | Description |
 |-----------|-------------|
-| `Poss.Win.Automation.HotKeys` | Global hotkey registration and management |
+| `Poss.Win.Automation.GlobalHotKeys` | Global hotkey registration and management |
 | `Poss.Win.Automation.Input` | Keyboard and mouse input simulation |
 | `Poss.Win.Automation.Common.Keys.Enums` | Key action and virtual key enums |
 | `Poss.Win.Automation.Common.Structs` | Key stroke struct |
-| `Poss.Win.Automation.HotKeys.Structs` | Hotkey binding and combination structs |
+| `Poss.Win.Automation.GlobalHotKeys.Structs` | Hotkey binding and combination structs |
 | `Poss.Win.Automation.Native.Structs` | Win32 POINT and RECT structs |
 
 ---
 
-## HotKeys
+## GlobalHotKeys
 
-### GlobalHotKeyManager
+### GlobalGlobalHotKeyManager
 
 | Member | Signature | Description |
 |--------|-----------|-------------|
-| Constructor | `GlobalHotKeyManager()` | Creates manager with default options |
-| Constructor | `GlobalHotKeyManager(HotKeyManagerOptions options)` | Creates manager with specified options |
+| Constructor | `GlobalGlobalHotKeyManager()` | Creates manager with default options |
+| Constructor | `GlobalGlobalHotKeyManager(GlobalHotKeyManagerOptions options)` | Creates manager with specified options |
 | Start | `void Start()` | Starts the hotkey manager and hooks |
 | Stop | `void Stop()` | Stops the manager and releases hooks |
 | IsRunning | `bool IsRunning` | Whether the manager is currently running |
@@ -41,7 +41,7 @@
 | GetRegisteredHotkeysAsync | `Task<IReadOnlyList<HotkeyBinding>> GetRegisteredHotkeysAsync()` | Async get registered hotkeys |
 | Dispose | `void Dispose()` | Releases resources and stops manager |
 
-### HotKeyManagerOptions
+### GlobalHotKeyManagerOptions
 
 | Member | Type | Description |
 |--------|------|-------------|
@@ -111,7 +111,7 @@ Windows virtual key codes (VK_*). Includes: A–Z, D0–D9, F1–F24, modifiers 
 
 ---
 
-## HotKeys.Structs
+## GlobalHotKeys.Structs
 
 ### HotkeyBinding
 

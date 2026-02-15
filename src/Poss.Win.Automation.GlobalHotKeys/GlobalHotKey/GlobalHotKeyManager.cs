@@ -5,21 +5,21 @@ using System.Threading;
 using System.Threading.Tasks;
 using Poss.Win.Automation.Common.Keys.Enums;
 using Poss.Win.Automation.Common.Structs;
-using Poss.Win.Automation.HotKeys.Structs;
+using Poss.Win.Automation.GlobalHotKeys.Structs;
 using Poss.Win.Automation.Native;
 using Poss.Win.Automation.Native.Constants;
 using Poss.Win.Automation.Native.Structs;
 
-namespace Poss.Win.Automation.HotKeys
+namespace Poss.Win.Automation.GlobalHotKeys
 {
     /// <summary>
     /// Facade for global hotkey handling. Coordinates hook lifecycle and hotkey registration.
     /// </summary>
-    public sealed class GlobalHotKeyManager : IDisposable
+    public sealed class GlobalGlobalHotKeyManager : IDisposable
     {
         private readonly object _lock = new object();
         private readonly HookLifecycle _hookLifecycle;
-        private readonly HotKeys _hotKeys;
+        private readonly GlobalHotKeys _hotKeys;
         private readonly HashSet<VirtualKey> _pressedInputs = new HashSet<VirtualKey>();
         private readonly bool _runMessageLoop;
         private Thread _messageLoopThread;
@@ -27,29 +27,29 @@ namespace Poss.Win.Automation.HotKeys
         private bool _disposed;
 
         /// <summary>
-        /// Creates a new <see cref="GlobalHotKeyManager"/> with default options.
+        /// Creates a new <see cref="GlobalGlobalHotKeyManager"/> with default options.
         /// </summary>
-        public GlobalHotKeyManager()
+        public GlobalGlobalHotKeyManager()
         {
             _runMessageLoop = false;
             _hookLifecycle = new HookLifecycle(KeyboardProc, MouseProc);
-            _hotKeys = new HotKeys();
+            _hotKeys = new GlobalHotKeys();
         }
 
         /// <summary>
-        /// Creates a new <see cref="GlobalHotKeyManager"/> with the specified options.
+        /// Creates a new <see cref="GlobalGlobalHotKeyManager"/> with the specified options.
         /// </summary>
         /// <param name="options">Optional configuration. If null, defaults are used.</param>
-        public GlobalHotKeyManager(HotKeyManagerOptions options)
+        public GlobalGlobalHotKeyManager(GlobalHotKeyManagerOptions options)
         {
             _runMessageLoop = options?.RunMessageLoop ?? false;
             _hookLifecycle = new HookLifecycle(KeyboardProc, MouseProc);
-            _hotKeys = new HotKeys();
+            _hotKeys = new GlobalHotKeys();
         }
 
         /// <summary>
         /// Starts the hotkey manager. Uses options passed to the constructor.
-        /// When <see cref="HotKeyManagerOptions.RunMessageLoop"/> is true, spawns a dedicated thread with a Windows message loop
+        /// When <see cref="GlobalHotKeyManagerOptions.RunMessageLoop"/> is true, spawns a dedicated thread with a Windows message loop
         /// so hooks work in console apps without WinForms/WPF.
         /// </summary>
         /// <exception cref="ObjectDisposedException">Thrown when the manager has been disposed.</exception>
@@ -58,7 +58,7 @@ namespace Poss.Win.Automation.HotKeys
             lock (_lock)
             {
                 if (_disposed)
-                    throw new ObjectDisposedException(nameof(GlobalHotKeyManager));
+                    throw new ObjectDisposedException(nameof(GlobalGlobalHotKeyManager));
 
                 if (_hookLifecycle.IsRunning)
                     return;
@@ -68,7 +68,7 @@ namespace Poss.Win.Automation.HotKeys
                     _messageLoopThread = new Thread(MessageLoopThread)
                     {
                         IsBackground = true,
-                        Name = "HotKeyMessageLoop"
+                        Name = "GlobalHotKeyMessageLoop"
                     };
                     _messageLoopThread.SetApartmentState(ApartmentState.STA);
                     _messageLoopThread.Start();

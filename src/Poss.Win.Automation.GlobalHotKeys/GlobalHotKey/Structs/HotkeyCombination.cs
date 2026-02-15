@@ -4,7 +4,7 @@ using System.Linq;
 using Poss.Win.Automation.Common.Keys.Enums;
 using Poss.Win.Automation.Common.Structs;
 
-namespace Poss.Win.Automation.HotKeys.Structs
+namespace Poss.Win.Automation.GlobalHotKeys.Structs
 {
     /// <summary>
     /// Immutable set of key strokes that define a hotkey combination.

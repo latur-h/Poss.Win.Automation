@@ -3,7 +3,7 @@ using System.Diagnostics;
 using Poss.Win.Automation.Native;
 using Poss.Win.Automation.Native.Constants;
 
-namespace Poss.Win.Automation.HotKeys
+namespace Poss.Win.Automation.GlobalHotKeys
 {
     internal sealed class HookLifecycle : IDisposable
     {

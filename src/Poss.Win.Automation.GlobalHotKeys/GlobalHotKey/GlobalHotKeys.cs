@@ -6,16 +6,16 @@ using System.Threading;
 using System.Threading.Tasks;
 using Poss.Win.Automation.Common.Keys.Enums;
 using Poss.Win.Automation.Common.Structs;
-using Poss.Win.Automation.HotKeys.Structs;
+using Poss.Win.Automation.GlobalHotKeys.Structs;
 
-namespace Poss.Win.Automation.HotKeys
+namespace Poss.Win.Automation.GlobalHotKeys
 {
     /// <summary>
     /// Worker that handles hotkey matching, re-trigger prevention, and registration.
     /// Receives input snapshots from the core; all logic runs off the hook thread.
     /// Thread-safe for concurrent Register/Unregister/Change/GetRegisteredHotkeys.
     /// </summary>
-    internal sealed class HotKeys
+    internal sealed class GlobalHotKeys
     {
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
         private readonly ConcurrentDictionary<string, (HotkeyCombination Combo, Func<Task> Action)> _registry = new ConcurrentDictionary<string, (HotkeyCombination, Func<Task>)>();

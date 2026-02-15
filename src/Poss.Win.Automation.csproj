@@ -1,15 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <TargetFramework>netstandard2.0</TargetFramework>
     <LangVersion>8.0</LangVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
-    <!-- NuGet package metadata -->
+    <Version>$(PackageVersion)</Version>
     <PackageId>Poss.Win.Automation</PackageId>
-    <Version>1.0.1</Version>
     <Authors>Latur</Authors>
-    <Description>Windows automation library for keyboard and mouse input simulation, global hotkey registration, and window management. Targets .NET Standard 2.0.</Description>
+    <Description>Windows automation library for keyboard and mouse input simulation, global hotkey registration, and window management. This package includes Input and GlobalHotKeys. For only input or only hotkeys, use Poss.Win.Automation.Input or Poss.Win.Automation.GlobalHotKeys. Targets .NET Standard 2.0.</Description>
     <PackageTags>windows;automation;input;keyboard;mouse;hotkey;global hotkey;keyboard hook;mouse hook;input simulation;SendInput;Win32;netstandard</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/latur-h/Poss.Win.Automation</PackageProjectUrl>
@@ -21,7 +21,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="_Metapackage.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="Poss.Win.Automation.Input\Poss.Win.Automation.Input.csproj" />
+    <ProjectReference Include="Poss.Win.Automation.GlobalHotKeys\Poss.Win.Automation.GlobalHotKeys.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="..\README.md" Pack="true" PackagePath="README.md" Visible="false" />
+    <None Include="..\LICENSE" Pack="true" PackagePath="LICENSE" />
   </ItemGroup>
 
 </Project>

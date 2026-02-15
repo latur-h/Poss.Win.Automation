@@ -2,7 +2,7 @@ using System;
 using Poss.Win.Automation.Common.Keys.Enums;
 using Poss.Win.Automation.Common.Structs;
 
-namespace Poss.Win.Automation.HotKeys.Structs
+namespace Poss.Win.Automation.GlobalHotKeys.Structs
 {
     /// <summary>
     /// Represents a registered hotkey binding (id and combination).
