@@ -56,7 +56,8 @@
 | Member | Signature | Description |
 |--------|-----------|-------------|
 | Constructor | `InputSimulator()` | No process filtering |
-| Constructor | `InputSimulator(string process)` | Filter by process name or window title |
+| Constructor | `InputSimulator(params string[] processOrTitle)` | Filter by one or more process names or window titles; input is sent only when foreground matches any |
+| Filters | `IReadOnlyList<WindowFilter> Filters` | The collection of process/window filters; empty when no filter is set |
 | SendText | `void SendText(string text)` | Sends Unicode text |
 | Send | `void Send(string input)` | Sends key/mouse from string (e.g. "A down", "LButton click") |
 | Send | `void Send(KeyStroke stroke)` | Sends key stroke |
@@ -75,8 +76,32 @@
 | SetNumLock | `void SetNumLock(bool on)` | Sets NumLock state |
 | BlockInput | `static void BlockInput(bool block)` | Blocks/unblocks user input |
 | IsActiveWindow | `bool IsActiveWindow(string query)` | Checks if foreground matches query |
-| IsActiveWindow | `bool IsActiveWindow()` | Checks if foreground matches constructor filter |
+| IsActiveWindow | `bool IsActiveWindow()` | Checks if foreground matches any of the constructor filters |
 | GetKeyState | `bool GetKeyState(string vKey)` | Returns true if key is held down |
+
+### ForegroundIdentity (struct)
+
+| Member | Type | Description |
+|--------|------|-------------|
+| Hwnd | `IntPtr` | Window handle |
+| Pid | `uint` | Process ID of the window |
+| Constructor | `ForegroundIdentity(IntPtr hwnd, uint pid)` | Creates identity from handle and PID |
+| Equals | `bool Equals(ForegroundIdentity other)` | True when both Hwnd and Pid match |
+
+### WindowFilter (struct)
+
+| Member | Type | Description |
+|--------|------|-------------|
+| Name | `string` | Process name (no .exe) or window title substring to match |
+| Type | `WindowFilterKind` | Process or Window |
+| Constructor | `WindowFilter(string name, WindowFilterKind type)` | Creates filter |
+
+### WindowFilterKind (enum)
+
+| Value | Description |
+|-------|-------------|
+| Process | Match by process name |
+| Window | Match by window title substring |
 
 ---
 

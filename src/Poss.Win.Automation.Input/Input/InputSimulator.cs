@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -15,18 +16,17 @@ namespace Poss.Win.Automation.Input
 {
     /// <summary>
     /// Simulates keyboard and mouse input, including key presses, mouse clicks,
-    /// cursor movement, and window queries. Supports optional filtering by process or window title.
+    /// cursor movement, and window queries. Supports optional filtering by one or more process names or window titles.
     /// </summary>
     public sealed class InputSimulator
     {
         private static readonly ConcurrentDictionary<string, KeyStroke> _cache = new ConcurrentDictionary<string, KeyStroke>(StringComparer.OrdinalIgnoreCase);
 
         private readonly HashSet<ushort> _heldModifiers = new HashSet<ushort>();
-        private readonly WindowFilter _filter;
+        private readonly IReadOnlyList<WindowFilter> _filters;
 
-        // Cache for foreground match: only trust when both hWnd and pid match (avoids stale result if process is killed and handle is reused).
-        private IntPtr _lastForegroundHwnd;
-        private uint _lastForegroundPid;
+        // Cache for foreground match: only trust when identity matches (avoids stale result if process is killed and handle is reused).
+        private ForegroundIdentity _lastIdentity;
         private bool _lastForegroundMatch;
 
         /// <summary>
@@ -34,18 +34,36 @@ namespace Poss.Win.Automation.Input
         /// </summary>
         public InputSimulator()
         {
-            _filter = null;
+            _filters = null;
         }
 
         /// <summary>
-        /// Initializes a new instance with filtering for a specific process or window title.
-        /// Input is simulated only when the foreground window matches. Process: "exe name" or "name.exe"/"name". Window: any other string (title substring).
+        /// Initializes a new instance with filtering for one or more process names or window titles.
+        /// Input is simulated only when the foreground window matches any of the filters.
+        /// Process: "exe name" or "name.exe"/"name". Window: any other string (title substring).
         /// </summary>
-        /// <param name="process">Process name ("exe notepad", "notepad.exe", "notepad") or window title substring to restrict input to.</param>
-        public InputSimulator(string process)
+        /// <param name="processOrTitle">One or more process names or window title substrings to restrict input to.</param>
+        public InputSimulator(params string[] processOrTitle)
         {
-            _filter = ParseFilter(process);
+            if (processOrTitle == null || processOrTitle.Length == 0)
+            {
+                _filters = null;
+                return;
+            }
+            var list = new List<WindowFilter>(processOrTitle.Length);
+            foreach (var s in processOrTitle)
+            {
+                var f = ParseFilter(s);
+                if (f.HasValue)
+                    list.Add(f.Value);
+            }
+            _filters = list.Count > 0 ? list : null;
         }
+
+        /// <summary>
+        /// Gets the collection of process/window filters. Input is simulated only when the foreground window matches any of these. Empty or null when no filter is set.
+        /// </summary>
+        public IReadOnlyList<WindowFilter> Filters => _filters ?? (IReadOnlyList<WindowFilter>)Array.Empty<WindowFilter>();
 
         /// <summary>
         /// Sends text as Unicode characters without translating to keycodes. Reliable for non-ASCII and accented characters.
@@ -515,14 +533,14 @@ namespace Poss.Win.Automation.Input
         public bool IsActiveWindow(string query)
         {
             var f = ParseFilter(query);
-            return f != null && IsActiveWindow(f);
+            return f.HasValue && IsActiveWindow(f.Value);
         }
 
         /// <summary>
         /// Checks if the currently focused window matches the filter specified during construction.
         /// </summary>
         /// <returns>True if the current window matches; otherwise, false. Returns false if no filter was set.</returns>
-        public bool IsActiveWindow() => _filter != null && IsActiveWindow(_filter);
+        public bool IsActiveWindow() => _filters != null && _filters.Count > 0 && MatchForeground();
 
         /// <summary>
         /// Determines whether the specified key is currently held down.
@@ -537,29 +555,32 @@ namespace Poss.Win.Automation.Input
             return (User32.GetAsyncKeyState(vkCode) & 0x8000) != 0;
         }
 
-        private bool ShouldSkipInput() => _filter != null && !IsActiveWindow(_filter);
+        private bool ShouldSkipInput() => _filters != null && _filters.Count > 0 && !MatchForeground();
+
+        private bool MatchForeground()
+        {
+            if (_filters == null || _filters.Count == 0) return false;
+
+            var hWnd = User32.GetForegroundWindow();
+            if (hWnd == IntPtr.Zero) return false;
+
+            User32.GetWindowThreadProcessId(hWnd, out uint pid);
+            var current = new ForegroundIdentity(hWnd, pid);
+
+            if (current.Equals(_lastIdentity))
+                return _lastForegroundMatch;
+
+            bool match = _filters.Any(f => ComputeActiveWindowMatch(f, hWnd));
+            _lastIdentity = current;
+            _lastForegroundMatch = match;
+            return match;
+        }
 
         private bool IsActiveWindow(WindowFilter filter)
         {
             var hWnd = User32.GetForegroundWindow();
             if (hWnd == IntPtr.Zero) return false;
-
-            User32.GetWindowThreadProcessId(hWnd, out uint pid);
-
-            // Only use cache for the instance filter; (hWnd, pid) must both match so we don't trust cache if process was killed and handle reused.
-            if (ReferenceEquals(filter, _filter) && hWnd == _lastForegroundHwnd && pid == _lastForegroundPid)
-                return _lastForegroundMatch;
-
-            bool match = ComputeActiveWindowMatch(filter, hWnd);
-
-            if (ReferenceEquals(filter, _filter))
-            {
-                _lastForegroundHwnd = hWnd;
-                _lastForegroundPid = pid;
-                _lastForegroundMatch = match;
-            }
-
-            return match;
+            return ComputeActiveWindowMatch(filter, hWnd);
         }
 
         private static bool ComputeActiveWindowMatch(WindowFilter filter, IntPtr hWnd)
@@ -567,13 +588,13 @@ namespace Poss.Win.Automation.Input
             if (filter.Type == WindowFilterKind.Process)
             {
                 var processName = GetProcessNameFromHandle(hWnd);
-                return processName != null && string.Equals(processName, filter.Name, StringComparison.OrdinalIgnoreCase);
+                return processName != null && string.Equals(processName, filter.Name, StringComparison.Ordinal);
             }
 
             return WindowTitleContains(hWnd, filter.Name);
         }
 
-        private static WindowFilter ParseFilter(string query)
+        private static WindowFilter? ParseFilter(string query)
         {
             if (string.IsNullOrWhiteSpace(query)) return null;
 
@@ -590,16 +611,17 @@ namespace Poss.Win.Automation.Input
         private static IntPtr FindMatchingWindow(string query)
         {
             var filter = ParseFilter(query);
-            if (filter == null) return IntPtr.Zero;
+            if (!filter.HasValue) return IntPtr.Zero;
+            var f = filter.Value;
 
             IntPtr result = IntPtr.Zero;
 
             bool Callback(IntPtr hWnd, IntPtr lParam)
             {
-                if (filter.Type == WindowFilterKind.Process)
+                if (f.Type == WindowFilterKind.Process)
                 {
                     var name = GetProcessNameFromHandle(hWnd);
-                    if (name != null && string.Equals(name, filter.Name, StringComparison.OrdinalIgnoreCase))
+                    if (name != null && string.Equals(name, f.Name, StringComparison.Ordinal))
                     {
                         result = hWnd;
                         return false;
@@ -609,7 +631,7 @@ namespace Poss.Win.Automation.Input
                 {
                     var sb = new StringBuilder(256);
                     User32.GetWindowText(hWnd, sb, sb.Capacity);
-                    if (sb.ToString().IndexOf(filter.Name, StringComparison.OrdinalIgnoreCase) >= 0)
+                    if (sb.ToString().IndexOf(f.Name, StringComparison.Ordinal) >= 0)
                     {
                         result = hWnd;
                         return false;
@@ -642,7 +664,7 @@ namespace Poss.Win.Automation.Input
 
             User32.GetWindowText(hWnd, sb, sb.Capacity);
 
-            return sb.ToString().IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0;
+            return sb.ToString().IndexOf(query, StringComparison.Ordinal) >= 0;
         }
 
         private static bool IsMouseKey(VirtualKey key) =>

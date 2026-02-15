@@ -1,9 +1,9 @@
 namespace Poss.Win.Automation.Input
 {
     /// <summary>
-    /// Registration filter for input: match by process name or window title. Nullable for quick "no filter" checks.
+    /// Filter for input: match by process name or window title. Used in collections to restrict input to one or more targets.
     /// </summary>
-    public sealed class WindowFilter
+    public readonly struct WindowFilter
     {
         /// <summary>Process name (no .exe) or window title substring to match.</summary>
         public string Name { get; }
