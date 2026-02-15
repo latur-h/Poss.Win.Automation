@@ -16,7 +16,7 @@ dotnet add package Poss.Win.Automation.GlobalHotKeys
 using Poss.Win.Automation.GlobalHotKeys;
 
 // Console apps: enable message loop so hooks work
-var manager = new GlobalGlobalHotKeyManager(new GlobalHotKeyManagerOptions { RunMessageLoop = true });
+var manager = new GlobalHotKeyManager(new GlobalHotKeyManagerOptions { RunMessageLoop = true });
 manager.Start();
 
 manager.Register("save", async () => { /* save */ }, "Ctrl+S");
@@ -27,7 +27,7 @@ manager.Register("onRelease", async () => { /* on key up */ }, "F5 Up");
 
 ## Main types
 
-- **GlobalGlobalHotKeyManager** — `Start`, `Stop`, `Register`, `Unregister`, `Change`, `GetRegisteredHotkeys`
+- **GlobalHotKeyManager** — `Start`, `Stop`, `Register`, `Unregister`, `Change`, `GetRegisteredHotkeys`
 - **GlobalHotKeyManagerOptions** — e.g. `RunMessageLoop = true` for console apps
 
 ## Requirements

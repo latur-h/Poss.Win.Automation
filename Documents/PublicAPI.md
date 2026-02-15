@@ -15,12 +15,12 @@
 
 ## GlobalHotKeys
 
-### GlobalGlobalHotKeyManager
+### GlobalHotKeyManager
 
 | Member | Signature | Description |
 |--------|-----------|-------------|
-| Constructor | `GlobalGlobalHotKeyManager()` | Creates manager with default options |
-| Constructor | `GlobalGlobalHotKeyManager(GlobalHotKeyManagerOptions options)` | Creates manager with specified options |
+| Constructor | `GlobalHotKeyManager()` | Creates manager with default options |
+| Constructor | `GlobalHotKeyManager(GlobalHotKeyManagerOptions options)` | Creates manager with specified options |
 | Start | `void Start()` | Starts the hotkey manager and hooks |
 | Stop | `void Stop()` | Stops the manager and releases hooks |
 | IsRunning | `bool IsRunning` | Whether the manager is currently running |

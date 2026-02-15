@@ -15,7 +15,7 @@ namespace Poss.Win.Automation.GlobalHotKeys
     /// <summary>
     /// Facade for global hotkey handling. Coordinates hook lifecycle and hotkey registration.
     /// </summary>
-    public sealed class GlobalGlobalHotKeyManager : IDisposable
+    public sealed class GlobalHotKeyManager : IDisposable
     {
         private readonly object _lock = new object();
         private readonly HookLifecycle _hookLifecycle;
@@ -27,9 +27,9 @@ namespace Poss.Win.Automation.GlobalHotKeys
         private bool _disposed;
 
         /// <summary>
-        /// Creates a new <see cref="GlobalGlobalHotKeyManager"/> with default options.
+        /// Creates a new <see cref="GlobalHotKeyManager"/> with default options.
         /// </summary>
-        public GlobalGlobalHotKeyManager()
+        public GlobalHotKeyManager()
         {
             _runMessageLoop = false;
             _hookLifecycle = new HookLifecycle(KeyboardProc, MouseProc);
@@ -37,10 +37,10 @@ namespace Poss.Win.Automation.GlobalHotKeys
         }
 
         /// <summary>
-        /// Creates a new <see cref="GlobalGlobalHotKeyManager"/> with the specified options.
+        /// Creates a new <see cref="GlobalHotKeyManager"/> with the specified options.
         /// </summary>
         /// <param name="options">Optional configuration. If null, defaults are used.</param>
-        public GlobalGlobalHotKeyManager(GlobalHotKeyManagerOptions options)
+        public GlobalHotKeyManager(GlobalHotKeyManagerOptions options)
         {
             _runMessageLoop = options?.RunMessageLoop ?? false;
             _hookLifecycle = new HookLifecycle(KeyboardProc, MouseProc);
@@ -58,7 +58,7 @@ namespace Poss.Win.Automation.GlobalHotKeys
             lock (_lock)
             {
                 if (_disposed)
-                    throw new ObjectDisposedException(nameof(GlobalGlobalHotKeyManager));
+                    throw new ObjectDisposedException(nameof(GlobalHotKeyManager));
 
                 if (_hookLifecycle.IsRunning)
                     return;

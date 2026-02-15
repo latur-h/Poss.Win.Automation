@@ -1,7 +1,7 @@
 namespace Poss.Win.Automation.GlobalHotKeys
 {
     /// <summary>
-    /// Configuration options for <see cref="GlobalGlobalHotKeyManager"/>.
+    /// Configuration options for <see cref="GlobalHotKeyManager"/>.
     /// </summary>
     public sealed class GlobalHotKeyManagerOptions
     {

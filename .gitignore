@@ -487,3 +487,4 @@ Projects/
 
 nuget.sh
 .cursorignore
+nupkg/
