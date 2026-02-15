@@ -22,27 +22,29 @@ namespace Poss.Win.Automation.Input
         private static readonly ConcurrentDictionary<string, KeyStroke> _cache = new ConcurrentDictionary<string, KeyStroke>(StringComparer.OrdinalIgnoreCase);
 
         private readonly HashSet<ushort> _heldModifiers = new HashSet<ushort>();
-        private readonly string _process;
+        private readonly WindowFilter _filter;
+
+        // Cache for foreground match: only trust when both hWnd and pid match (avoids stale result if process is killed and handle is reused).
+        private IntPtr _lastForegroundHwnd;
+        private uint _lastForegroundPid;
+        private bool _lastForegroundMatch;
 
         /// <summary>
-        /// Initializes a new instance without process filtering. All input is simulated regardless of foreground window.
+        /// Initializes a new instance without filtering. All input is simulated regardless of foreground window.
         /// </summary>
         public InputSimulator()
         {
-            _process = null;
+            _filter = null;
         }
 
         /// <summary>
         /// Initializes a new instance with filtering for a specific process or window title.
-        /// Input is simulated only when the foreground window matches.
+        /// Input is simulated only when the foreground window matches. Process: "exe name" or "name.exe"/"name". Window: any other string (title substring).
         /// </summary>
-        /// <param name="process">Process name (with or without ".exe") or window title substring to restrict input to.</param>
+        /// <param name="process">Process name ("exe notepad", "notepad.exe", "notepad") or window title substring to restrict input to.</param>
         public InputSimulator(string process)
         {
-            if (process != null && process.Contains(".exe"))
-                process = process.Substring(0, process.IndexOf(".exe", StringComparison.OrdinalIgnoreCase)).Trim();
-
-            _process = process;
+            _filter = ParseFilter(process);
         }
 
         /// <summary>
@@ -508,28 +510,19 @@ namespace Poss.Win.Automation.Input
         /// <summary>
         /// Checks if the currently focused window matches the given process name or window title.
         /// </summary>
-        /// <param name="query">Process name (e.g. "exe notepad") or window title substring.</param>
+        /// <param name="query">Process name ("exe notepad", "notepad.exe", "notepad") or window title substring.</param>
         /// <returns>True if the current window matches; otherwise, false.</returns>
         public bool IsActiveWindow(string query)
         {
-            var hWnd = User32.GetForegroundWindow();
-            if (hWnd == IntPtr.Zero) return false;
-
-            if (query.StartsWith("exe ", StringComparison.OrdinalIgnoreCase))
-            {
-                string targetExe = query.Substring(4).Trim();
-                var processName = GetProcessNameFromHandle(hWnd);
-                return processName != null && string.Equals(processName, targetExe, StringComparison.OrdinalIgnoreCase);
-            }
-
-            return WindowTitleContains(hWnd, query);
+            var f = ParseFilter(query);
+            return f != null && IsActiveWindow(f);
         }
 
         /// <summary>
-        /// Checks if the currently focused window matches the process or title specified during construction.
+        /// Checks if the currently focused window matches the filter specified during construction.
         /// </summary>
-        /// <returns>True if the current window matches; otherwise, false. Returns false if no process filter was set.</returns>
-        public bool IsActiveWindow() => !string.IsNullOrEmpty(_process) && IsActiveWindow(_process);
+        /// <returns>True if the current window matches; otherwise, false. Returns false if no filter was set.</returns>
+        public bool IsActiveWindow() => _filter != null && IsActiveWindow(_filter);
 
         /// <summary>
         /// Determines whether the specified key is currently held down.
@@ -544,22 +537,71 @@ namespace Poss.Win.Automation.Input
             return (User32.GetAsyncKeyState(vkCode) & 0x8000) != 0;
         }
 
-        private bool ShouldSkipInput() => !string.IsNullOrEmpty(_process) && !IsActiveWindow(_process);
+        private bool ShouldSkipInput() => _filter != null && !IsActiveWindow(_filter);
+
+        private bool IsActiveWindow(WindowFilter filter)
+        {
+            var hWnd = User32.GetForegroundWindow();
+            if (hWnd == IntPtr.Zero) return false;
+
+            User32.GetWindowThreadProcessId(hWnd, out uint pid);
+
+            // Only use cache for the instance filter; (hWnd, pid) must both match so we don't trust cache if process was killed and handle reused.
+            if (ReferenceEquals(filter, _filter) && hWnd == _lastForegroundHwnd && pid == _lastForegroundPid)
+                return _lastForegroundMatch;
+
+            bool match = ComputeActiveWindowMatch(filter, hWnd);
+
+            if (ReferenceEquals(filter, _filter))
+            {
+                _lastForegroundHwnd = hWnd;
+                _lastForegroundPid = pid;
+                _lastForegroundMatch = match;
+            }
+
+            return match;
+        }
+
+        private static bool ComputeActiveWindowMatch(WindowFilter filter, IntPtr hWnd)
+        {
+            if (filter.Type == WindowFilterKind.Process)
+            {
+                var processName = GetProcessNameFromHandle(hWnd);
+                return processName != null && string.Equals(processName, filter.Name, StringComparison.OrdinalIgnoreCase);
+            }
+
+            return WindowTitleContains(hWnd, filter.Name);
+        }
+
+        private static WindowFilter ParseFilter(string query)
+        {
+            if (string.IsNullOrWhiteSpace(query)) return null;
+
+            var q = query.Trim();
+            if (q.StartsWith("exe ", StringComparison.OrdinalIgnoreCase))
+                return new WindowFilter(q.Substring(4).Trim(), WindowFilterKind.Process);
+
+            if (q.IndexOf(".exe", StringComparison.OrdinalIgnoreCase) >= 0)
+                return new WindowFilter(q.Substring(0, q.IndexOf(".exe", StringComparison.OrdinalIgnoreCase)).Trim(), WindowFilterKind.Process);
+
+            return new WindowFilter(q, WindowFilterKind.Window);
+        }
 
         private static IntPtr FindMatchingWindow(string query)
         {
+            var filter = ParseFilter(query);
+            if (filter == null) return IntPtr.Zero;
+
             IntPtr result = IntPtr.Zero;
-            var criteria = new WindowSearchCriteria(query);
 
             bool Callback(IntPtr hWnd, IntPtr lParam)
             {
-                if (criteria.IsExe)
+                if (filter.Type == WindowFilterKind.Process)
                 {
                     var name = GetProcessNameFromHandle(hWnd);
-                    if (name != null && string.Equals(name, criteria.Target, StringComparison.OrdinalIgnoreCase))
+                    if (name != null && string.Equals(name, filter.Name, StringComparison.OrdinalIgnoreCase))
                     {
                         result = hWnd;
-
                         return false;
                     }
                 }
@@ -567,10 +609,9 @@ namespace Poss.Win.Automation.Input
                 {
                     var sb = new StringBuilder(256);
                     User32.GetWindowText(hWnd, sb, sb.Capacity);
-                    if (sb.ToString().IndexOf(criteria.Target, StringComparison.OrdinalIgnoreCase) >= 0)
+                    if (sb.ToString().IndexOf(filter.Name, StringComparison.OrdinalIgnoreCase) >= 0)
                     {
                         result = hWnd;
-
                         return false;
                     }
                 }
@@ -610,25 +651,5 @@ namespace Poss.Win.Automation.Input
 
         private static bool IsModifierKey(ushort vkCode) =>
             vkCode == 0x10 || vkCode == 0x11 || vkCode == 0x12 || vkCode == 0x5B || vkCode == 0x5C;
-
-        private class WindowSearchCriteria
-        {
-            public readonly bool IsExe;
-            public readonly string Target;
-
-            public WindowSearchCriteria(string query)
-            {
-                if (query.StartsWith("exe ", StringComparison.OrdinalIgnoreCase))
-                {
-                    IsExe = true;
-                    Target = query.Substring(4).Trim();
-                }
-                else
-                {
-                    IsExe = false;
-                    Target = query;
-                }
-            }
-        }
     }
 }
