@@ -87,26 +87,7 @@ namespace Poss.Win.Automation.Common.Structs
 
             if (parts.Length == 0 || parts.Length > 2) return false;
 
-            VirtualKey key;
-            if (Enum.TryParse(parts[0], ignoreCase: true, out key))
-            {
-                if (key == VirtualKey.None) return false;
-            }
-            else if (StringToKey.TryGetValue(parts[0], out key)) { }
-            else if (parts[0].Length == 1)
-            {
-                char c = parts[0][0];
-                if (char.IsDigit(c))
-                    key = (VirtualKey)(0x30 + (c - '0'));
-                else if (char.IsLetter(c))
-                    key = (VirtualKey)char.ToUpperInvariant(c);
-                else
-                    return false;
-            }
-            else
-            {
-                return false;
-            }
+            if (!TryParseKey(parts[0], out VirtualKey key)) return false;
 
             KeyAction action = KeyAction.Press;
             if (parts.Length == 2)
@@ -150,12 +131,6 @@ namespace Poss.Win.Automation.Common.Structs
             if (string.IsNullOrWhiteSpace(key)) return false;
 
             VirtualKey vk;
-            if (Enum.TryParse(key, ignoreCase: true, out vk) && vk != VirtualKey.None)
-            {
-                vkCode = (ushort)vk;
-
-                return true;
-            }
             if (StringToKey.TryGetValue(key, out vk))
             {
                 vkCode = (ushort)vk;
@@ -177,6 +152,15 @@ namespace Poss.Win.Automation.Common.Structs
 
                     return true;
                 }
+            }
+            if (key.Length > 1 && key.All(char.IsDigit))
+                return false;
+
+            if (Enum.TryParse(key, ignoreCase: true, out vk) && vk != VirtualKey.None)
+            {
+                vkCode = (ushort)vk;
+
+                return true;
             }
 
             return false;

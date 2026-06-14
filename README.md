@@ -5,6 +5,7 @@
 ## Features
 
 - **InputSimulator** — simulate keyboard and mouse input (key presses, clicks, cursor movement, Unicode text)
+- **Key parsing prechecks** — validate key/chord strings with `TryParse` / `TryParseKey` before sending input or registering hotkeys
 - **GlobalHotKeyManager** — register system-wide hotkeys with keyboard and mouse support
 - **Window utilities** — activate windows, query titles, positions, process names
 
@@ -74,6 +75,45 @@ sim.Send("Ctrl up");    // Release Ctrl
 // Trigger-on-release hotkey
 manager.Register("onRelease", async () => { /* fires when key is released */ }, "F5 Up");
 ```
+
+### Validate key strings (precheck)
+
+Use `TryParse` / `TryParseKey` to validate key names **before** calling `Send`, `GetKeyState`, or registering hotkeys — without throwing.
+
+```csharp
+using Poss.Win.Automation.Common.Keys.Enums;
+using Poss.Win.Automation.Common.Structs;
+using Poss.Win.Automation.Input;
+using Poss.Win.Automation.GlobalHotKeys.Structs;
+
+// Single key name only (no action): "1", "D1", "Ctrl", "LButton", ";"
+if (KeyStroke.TryParseKey("1", out VirtualKey key))
+    Console.WriteLine(key);  // D1
+
+// Raw VK code for a key name
+if (KeyStroke.TryGetVirtualKeyCode("F5", out ushort vkCode)) { /* ... */ }
+
+// Key + optional action: "A", "D1 Down", "LButton click"
+if (KeyStroke.TryParse("Ctrl Down", out KeyStroke stroke))
+    sim.Send(stroke);
+
+// Same as KeyStroke.TryParse, with InputSimulator's parse cache
+if (InputSimulator.TryParse("1 Down", out KeyStroke cached))
+    sim.Send(cached);
+
+// Chord (parts separated by '+'): "Ctrl + 1", "Shift + LButton Up"
+if (HotkeyCombination.TryParse("Ctrl + S", out _))
+    manager.Register("save", async () => { }, "Ctrl + S");
+```
+
+Accepted key formats:
+
+- **Enum names** — `D1`, `Ctrl`, `F5`, `LButton`, `NumPad3` (case-insensitive)
+- **Row digits** — `"0"`–`"9"` map to `D0`–`D9` (not mouse VK codes)
+- **Single letters** — `A` / `a`
+- **Symbol literals** — `;` `=` `,` `-` `.` `/` `` ` `` `[` `\` `]` `'`
+
+Space in a stroke string separates **key from action** (`Down`, `Up`, `Press`, `Click`), not multiple keys. Use `+` for chords (`HotkeyCombination`). Multi-digit numeric strings (e.g. `"17"`) are rejected.
 
 ### Mouse and window utilities
 

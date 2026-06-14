@@ -17,7 +17,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>Copyright (c) Latur 2026</Copyright>
-    <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
+    <PackageReleaseNotes>Fix KeyStroke key parsing: single-digit keys (0-9), parse order, and reject multi-digit numeric strings.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
