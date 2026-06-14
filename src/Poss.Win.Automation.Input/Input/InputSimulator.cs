@@ -186,6 +186,14 @@ namespace Poss.Win.Automation.Input
             Execute(stroke);
         }
 
+        /// <summary>
+        /// Tries to parse a key stroke string. Format: "[key] [action]", e.g. "D1 Down", "LButton click".
+        /// </summary>
+        /// <param name="input">Key name plus optional action: "down", "up", or "click"/"press" (default).</param>
+        /// <param name="stroke">The parsed stroke when successful.</param>
+        /// <returns>True if parsing succeeded; otherwise, false.</returns>
+        public static bool TryParse(string input, out KeyStroke stroke) => TryGetOrParse(input, out stroke);
+
         private static KeyStroke GetOrParse(string input)
         {
             if (TryGetOrParse(input, out KeyStroke stroke))

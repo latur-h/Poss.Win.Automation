@@ -121,6 +121,24 @@ namespace Poss.Win.Automation.Common.Structs
         }
 
         /// <summary>
+        /// Tries to parse a key name without an action. Format: "D1", "Ctrl", "F5".
+        /// </summary>
+        /// <param name="key">Key name only (no action suffix).</param>
+        /// <param name="virtualKey">The parsed virtual key when successful.</param>
+        /// <returns>True if the key was recognized; otherwise, false.</returns>
+        public static bool TryParseKey(string key, out VirtualKey virtualKey)
+        {
+            if (TryGetVirtualKeyCode(key, out ushort vkCode))
+            {
+                virtualKey = (VirtualKey)vkCode;
+                return true;
+            }
+
+            virtualKey = default;
+            return false;
+        }
+
+        /// <summary>
         /// Gets the virtual key code for a key name.
         /// </summary>
         /// <param name="key">Key name (e.g. "A", "Ctrl", "LButton").</param>
