@@ -35,7 +35,7 @@ namespace Poss.Win.Automation.Input
         /// Initializes a new instance without filtering. All input is simulated regardless of foreground window.
         /// </summary>
         public InputSimulator()
-            : this(false)
+            : this((InputSimulatorOptions)null)
         {
         }
 
@@ -46,18 +46,25 @@ namespace Poss.Win.Automation.Input
         /// </summary>
         /// <param name="processOrTitle">One or more process names or window title substrings to restrict input to.</param>
         public InputSimulator(params string[] processOrTitle)
-            : this(false, processOrTitle)
+            : this(null, processOrTitle)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance that can send through the virtual keyboard and mouse.
-        /// Send, Click, MouseWheel, and MouseDeltaMove use that session when <paramref name="useVirtualDevice"/> is true.
-        /// SendText, MouseSetPos, SetCapsLock, and SetNumLock stay on the Win32 path.
+        /// Creates a new <see cref="InputSimulator"/> with the specified options.
         /// </summary>
-        /// <param name="useVirtualDevice">True to open a virtual HID session. The driver must already be installed.</param>
+        /// <param name="options">Optional configuration. If null, defaults are used.</param>
+        public InputSimulator(InputSimulatorOptions options)
+            : this(options, null)
+        {
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="InputSimulator"/> with the specified options and foreground filters.
+        /// </summary>
+        /// <param name="options">Optional configuration. If null, defaults are used.</param>
         /// <param name="processOrTitle">Optional process names or window title substrings. Input is sent only when the foreground window matches.</param>
-        public InputSimulator(bool useVirtualDevice, params string[] processOrTitle)
+        public InputSimulator(InputSimulatorOptions options, params string[] processOrTitle)
         {
             if (processOrTitle == null || processOrTitle.Length == 0)
             {
@@ -75,7 +82,7 @@ namespace Poss.Win.Automation.Input
                 _filters = list.Count > 0 ? list : null;
             }
 
-            if (useVirtualDevice)
+            if (options?.UseVirtualDevice == true)
                 _virtualSession = VirtualHidSession.Open();
         }
 
