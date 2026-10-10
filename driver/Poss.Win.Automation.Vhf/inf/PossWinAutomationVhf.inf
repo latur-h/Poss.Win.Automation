@@ -1,0 +1,65 @@
+;
+; PossWinAutomationVhf.inf
+;
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = HIDClass
+ClassGuid   = {745a17a0-74d3-11d0-b6fe-00a0c90f57da}
+Provider    = %ManufacturerName%
+CatalogFile = PossWinAutomationVhf.cat
+DriverVer   = 10/11/2026,1.0.0.0
+PnpLockdown = 1
+
+[DestinationDirs]
+DefaultDestDir = 13
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+PossWinAutomationVhf.sys = 1,,
+
+[Manufacturer]
+%ManufacturerName% = Standard,NTamd64.10.0...16299,NTarm64.10.0...16299
+
+[Standard.NTamd64.10.0...16299]
+%PossWinAutomationVhf.DeviceDesc% = PossVhf_Device, Root\PossWinAutomationVhf
+
+[Standard.NTarm64.10.0...16299]
+%PossWinAutomationVhf.DeviceDesc% = PossVhf_Device, Root\PossWinAutomationVhf
+
+[PossVhf_Device.NT]
+CopyFiles = File_Copy
+
+[File_Copy]
+PossWinAutomationVhf.sys
+
+[PossVhf_Device.NT.HW]
+AddReg = PossVhf_AddReg
+
+[PossVhf_AddReg]
+HKR,,"LowerFilters",0x00010000,"vhf"
+
+[PossVhf_Device.NT.Services]
+AddService = PossWinAutomationVhf,%SPSVCINST_ASSOCSERVICE%, PossVhf_Service_Inst
+
+[PossVhf_Service_Inst]
+DisplayName    = %PossWinAutomationVhf.SVCDESC%
+ServiceType    = 1
+StartType      = 3
+ErrorControl   = 1
+ServiceBinary  = %13%\PossWinAutomationVhf.sys
+
+[PossVhf_Device.NT.Wdf]
+KmdfService = PossWinAutomationVhf, PossVhf_wdfsect
+
+[PossVhf_wdfsect]
+KmdfLibraryVersion = 1.15
+
+[Strings]
+SPSVCINST_ASSOCSERVICE = 0x00000002
+ManufacturerName = "Poss"
+DiskName = "PossWinAutomationVhf Installation Disk"
+PossWinAutomationVhf.DeviceDesc = "Poss Virtual HID Source"
+PossWinAutomationVhf.SVCDESC = "Poss Virtual HID Source"

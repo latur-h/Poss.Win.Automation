@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>8.0</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Poss.Win.Automation.VirtualHid</RootNamespace>
+  </PropertyGroup>
+
+</Project>

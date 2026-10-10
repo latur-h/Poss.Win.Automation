@@ -24,6 +24,19 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Poss.Win.Automation.Core\Poss.Win.Automation.Core.csproj" />
+    <ProjectReference Include="..\Poss.Win.Automation.VirtualHid\Poss.Win.Automation.VirtualHid.csproj" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeVirtualHidInPackage</TargetsForTfmSpecificBuildOutput>
+  </PropertyGroup>
+
+  <Target Name="IncludeVirtualHidInPackage" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths)" Condition="'%(Filename)' == 'Poss.Win.Automation.VirtualHid'">
+        <TargetPath>%(Filename)%(Extension)</TargetPath>
+      </BuildOutputInPackage>
+    </ItemGroup>
+  </Target>
 
 </Project>

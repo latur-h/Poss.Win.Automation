@@ -11,6 +11,7 @@ using Poss.Win.Automation.Common.Structs;
 using Poss.Win.Automation.Native;
 using Poss.Win.Automation.Native.Constants;
 using Poss.Win.Automation.Native.Structs;
+using Poss.Win.Automation.VirtualHid;
 
 namespace Poss.Win.Automation.Input
 {
@@ -18,12 +19,13 @@ namespace Poss.Win.Automation.Input
     /// Simulates keyboard and mouse input, including key presses, mouse clicks,
     /// cursor movement, and window queries. Supports optional filtering by one or more process names or window titles.
     /// </summary>
-    public sealed class InputSimulator
+    public sealed class InputSimulator : IDisposable
     {
         private static readonly ConcurrentDictionary<string, KeyStroke> _cache = new ConcurrentDictionary<string, KeyStroke>(StringComparer.OrdinalIgnoreCase);
 
         private readonly HashSet<ushort> _heldModifiers = new HashSet<ushort>();
         private readonly IReadOnlyList<WindowFilter> _filters;
+        private readonly VirtualHidSession _virtualSession;
 
         // Cache for foreground match: only trust when identity matches (avoids stale result if process is killed and handle is reused).
         private ForegroundIdentity _lastIdentity;
@@ -33,8 +35,8 @@ namespace Poss.Win.Automation.Input
         /// Initializes a new instance without filtering. All input is simulated regardless of foreground window.
         /// </summary>
         public InputSimulator()
+            : this(false)
         {
-            _filters = null;
         }
 
         /// <summary>
@@ -44,21 +46,43 @@ namespace Poss.Win.Automation.Input
         /// </summary>
         /// <param name="processOrTitle">One or more process names or window title substrings to restrict input to.</param>
         public InputSimulator(params string[] processOrTitle)
+            : this(false, processOrTitle)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance that can send through the virtual keyboard and mouse.
+        /// Send, Click, MouseWheel, and MouseDeltaMove use that session when <paramref name="useVirtualDevice"/> is true.
+        /// SendText, MouseSetPos, SetCapsLock, and SetNumLock stay on the Win32 path.
+        /// </summary>
+        /// <param name="useVirtualDevice">True to open a virtual HID session. The driver must already be installed.</param>
+        /// <param name="processOrTitle">Optional process names or window title substrings. Input is sent only when the foreground window matches.</param>
+        public InputSimulator(bool useVirtualDevice, params string[] processOrTitle)
         {
             if (processOrTitle == null || processOrTitle.Length == 0)
             {
                 _filters = null;
-                return;
             }
-            var list = new List<WindowFilter>(processOrTitle.Length);
-            foreach (var s in processOrTitle)
+            else
             {
-                var f = ParseFilter(s);
-                if (f.HasValue)
-                    list.Add(f.Value);
+                var list = new List<WindowFilter>(processOrTitle.Length);
+                foreach (var s in processOrTitle)
+                {
+                    var f = ParseFilter(s);
+                    if (f.HasValue)
+                        list.Add(f.Value);
+                }
+                _filters = list.Count > 0 ? list : null;
             }
-            _filters = list.Count > 0 ? list : null;
+
+            if (useVirtualDevice)
+                _virtualSession = VirtualHidSession.Open();
         }
+
+        /// <summary>
+        /// True when this instance sends supported input through the virtual HID session.
+        /// </summary>
+        public bool UseVirtualDevice => _virtualSession != null;
 
         /// <summary>
         /// Gets the collection of process/window filters. Input is simulated only when the foreground window matches any of these. Empty or null when no filter is set.
@@ -141,6 +165,12 @@ namespace Poss.Win.Automation.Input
         public void MouseWheel(int delta)
         {
             if (ShouldSkipInput()) return;
+
+            if (_virtualSession != null)
+            {
+                _virtualSession.SendMouseWheel(delta);
+                return;
+            }
 
             var input = new INPUT
             {
@@ -260,6 +290,20 @@ namespace Poss.Win.Automation.Input
 
         private void SendKey(ushort vkCode, bool isKeyDown)
         {
+            if (_virtualSession == null)
+            {
+                SendInputKey(vkCode, isKeyDown);
+                return;
+            }
+
+            if (!HidUsageMap.TryGetUsage(vkCode, out ushort usage))
+                throw new ArgumentException($"Key has no virtual HID usage: 0x{vkCode:X}");
+
+            _virtualSession.SendKey(usage, isKeyDown);
+        }
+
+        private void SendInputKey(ushort vkCode, bool isKeyDown)
+        {
             var input = new INPUT
             {
                 type = InputConstants.INPUT_KEYBOARD,
@@ -279,6 +323,12 @@ namespace Poss.Win.Automation.Input
 
         private void SendMouse(VirtualKey button, bool down)
         {
+            if (_virtualSession != null)
+            {
+                _virtualSession.SendMouseButton(ToVirtualButton(button), down);
+                return;
+            }
+
             uint flags;
             uint data;
 
@@ -385,6 +435,12 @@ namespace Poss.Win.Automation.Input
 
         private void SendDelta(int dx, int dy)
         {
+            if (_virtualSession != null)
+            {
+                _virtualSession.SendMouseMove(dx, dy);
+                return;
+            }
+
             var input = new INPUT[1];
 
             input[0].type = InputConstants.INPUT_MOUSE;
@@ -503,8 +559,8 @@ namespace Poss.Win.Automation.Input
             bool current = (User32.GetAsyncKeyState(0x14) & 1) != 0;
             if (current != on)
             {
-                SendKey(0x14, true);
-                SendKey(0x14, false);
+                SendInputKey(0x14, true);
+                SendInputKey(0x14, false);
             }
         }
 
@@ -519,8 +575,8 @@ namespace Poss.Win.Automation.Input
             bool current = (User32.GetAsyncKeyState(0x90) & 1) != 0;
             if (current != on)
             {
-                SendKey(0x90, true);
-                SendKey(0x90, false);
+                SendInputKey(0x90, true);
+                SendInputKey(0x90, false);
             }
         }
 
@@ -681,5 +737,26 @@ namespace Poss.Win.Automation.Input
 
         private static bool IsModifierKey(ushort vkCode) =>
             vkCode == 0x10 || vkCode == 0x11 || vkCode == 0x12 || vkCode == 0x5B || vkCode == 0x5C;
+
+        private static byte ToVirtualButton(VirtualKey button)
+        {
+            switch (button)
+            {
+                case VirtualKey.LButton: return VhfProtocol.MouseButtonLeft;
+                case VirtualKey.RButton: return VhfProtocol.MouseButtonRight;
+                case VirtualKey.MButton: return VhfProtocol.MouseButtonMiddle;
+                case VirtualKey.XButton1: return VhfProtocol.MouseButtonX1;
+                case VirtualKey.XButton2: return VhfProtocol.MouseButtonX2;
+                default: throw new ArgumentException($"Not a mouse button: {button}");
+            }
+        }
+
+        /// <summary>
+        /// Closes the virtual HID session when one was opened.
+        /// </summary>
+        public void Dispose()
+        {
+            _virtualSession?.Dispose();
+        }
     }
 }
